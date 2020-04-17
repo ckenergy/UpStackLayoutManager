@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DrawerBehavior">
+        <attr name="android:layout_gravity" />
+        <attr name="android:minHeight" />
+    </declare-styleable>
+</resources>
