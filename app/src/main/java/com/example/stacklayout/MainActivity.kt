@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
@@ -87,16 +88,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun getItemCount(): Int {
-            return list.size
+            return list.size*3
         }
 
         override fun onBindViewHolder(holder: Adapter.Holder, position: Int) {
-            holder.image.setImageResource(list.get(position))
-            ViewCompat.setElevation(holder.image, (5-position).toFloat())
+            holder.image.setBackgroundResource(list.get(position%list.size))
+//            ViewCompat.setElevation(holder.image, (5-position).toFloat())
         }
 
         class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            var image:ImageView = itemView.findViewById(R.id.item_iv)
+            var image:TextView = itemView.findViewById(R.id.item_tv)
         }
 
     }
