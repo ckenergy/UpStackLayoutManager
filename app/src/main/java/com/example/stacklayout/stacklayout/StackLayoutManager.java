@@ -1,4 +1,4 @@
-package com.example.stacklayout.vagelayout;
+package com.example.stacklayout.stacklayout;
 
 import android.graphics.Rect;
 import android.util.Log;
@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
-import androidx.annotation.NonNull;
 import androidx.collection.ArrayMap;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.recyclerview.widget.RecyclerView;
@@ -30,11 +29,10 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
     private int bottomOffset = 0;
     private int bottomLastOffset = 0;
 
-//    private SparseArray<Rect> locationRects = new SparseArray<>();
-    private SparseArray<StateHolder> stateList = new SparseArray<>();
-    private ArrayMap<Integer, Integer> viewTypeHeightMap = new ArrayMap<>();
+    private SparseArray<StateHolder> stateList;
+    private ArrayMap<Integer, Integer> viewHeightMap;
 
-    SparseArray<View> visibleView = new SparseArray<>();
+    private SparseArray<View> visibleView;
 
     private boolean needSnap = false;
     private int lastDy = 0;
@@ -47,19 +45,15 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
 
     public int totalRange = 0;
 
+    /**需要减去的高度，一般为一些按钮的高度，*/
+    private int diffOffset = 0;
+
     private boolean mUseVisibleHeight = false;
     private int mMinScrollHeight = 0;
 
     private RecyclerView mRecyclerView;
 
-    float h_elevation;
-    float m_elevation;
-    float l_elevation;
-
-    float a1, a2, b2;
-
     public StackLayoutManager() {
-        setAutoMeasureEnabled(true);
     }
 
     public boolean isUseVisibleHeight() {
@@ -97,6 +91,17 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         mNeedFixHeight = true;
     }
 
+    public int getDiffOffset() {
+        return diffOffset;
+    }
+
+    public void setDiffOffset(int diffOffset) {
+        if (this.diffOffset != diffOffset) {
+            this.diffOffset = diffOffset;
+            mNeedFixHeight = true;
+        }
+    }
+
     @Override
     public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
         Log.d(TAG, "onLayoutChildren");
@@ -105,13 +110,12 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             return;
         }
         buildLocationRects();
-        layoutItems(true);
+        layoutItems();
     }
 
     boolean needRebuildRect = true;
 
     private void buildLocationRects() {
-//        if (!needRebuildRect) return;
 
         Log.d(TAG, "buildLocationRects");
         needRebuildRect = false;
@@ -125,15 +129,15 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             // 1. 先计算出itemWidth和itemHeight
             int viewType = adapter.getItemViewType(i);
             int itemHeight;
-            if (viewTypeHeightMap.containsKey(viewType)) {
-                itemHeight = viewTypeHeightMap.get(viewType);
+            if (viewHeightMap.containsKey(viewType)) {
+                itemHeight = viewHeightMap.get(viewType);
             } else {
                 // TODO: 2020/4/17 0017  获取view的margin
                 View itemView = recycler.getViewForPosition(i);
                 addView(itemView);
                 measureChildWithMargins(itemView, View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
                 itemHeight = getDecoratedMeasuredHeight(itemView);
-                viewTypeHeightMap.put(viewType, itemHeight);
+                viewHeightMap.put(viewType, itemHeight);
             }
 
             StateHolder holder = new StateHolder();
@@ -157,7 +161,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             }
             lastBottom = holder.scrollBottom;
             stateList.put(i, holder);
-            tempPosition = tempPosition + itemHeight;
+            tempPosition = tempPosition + rect.height();
         }
 
         totalRange = tempPosition;
@@ -185,43 +189,24 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             mNeedFixHeight = false;
             CoordinatorLayout coordinatorLayout = findCoordinatorLayout(mRecyclerView);
             int maxHeight = -1;//可上升的高度
-            int offset = UIUtils.dip2px(mRecyclerView.getContext(), 133);//减去开锁按钮的高度
+            int offset = diffOffset;//减去按钮的高度
             if (coordinatorLayout != null) {
                 Rect rect = new Rect();
                 coordinatorLayout.getGlobalVisibleRect(rect);
-                Log.d(TAG, "setRecyclerViewHeight rect:"+rect.toString());
                 maxHeight = rect.height() - offset;
-                Log.d(TAG, "setRecyclerViewHeight height1:"+maxHeight);
-            }
-            if (maxHeight <= 0) {
-                maxHeight = mRecyclerView.getResources().getDisplayMetrics().heightPixels - offset;
-            }
-            int height = mRecyclerView.getHeight();
-            Log.d(TAG, "setRecyclerViewHeight:"+height+", total:"+totalRange+", maxHeight:"+maxHeight);
-            mFixHeight = Math.min(maxHeight, totalRange + getPaddingBottom());
 
-            Log.d(TAG, "buildLocationRects mFixHeight:"+mFixHeight);
-            layoutParams.height = mFixHeight;//mFixHeight + getPaddingBottom();
-            recyclerView.setLayoutParams(layoutParams);
-//            a1 = mFixHeight/1848f - 0.313f;
-//            b2 = mFixHeight/528f - 1.345f;
-//            a2 = a1 - 2*b2;
-            a1 = 1.0f;
-            b2 = 0;
-            a2 = a1 - 2*b2;
-            Log.d(TAG, "setRecyclerViewHeight a1:"+a1+", a2:"+a2+", b2:"+b2);
-        }else {
-            a1 = 1.0f/6;
-            b2 = 1.0f/3;
-            a2 = a1 - 2*b2;
+                if (maxHeight <= 0) {
+                    maxHeight = mRecyclerView.getResources().getDisplayMetrics().heightPixels - offset;
+                }
+
+                mFixHeight = Math.min(maxHeight, totalRange + getPaddingBottom()+getPaddingTop());
+
+                layoutParams.height = mFixHeight;//mFixHeight + getPaddingBottom();
+                recyclerView.setLayoutParams(layoutParams);
+            }
         }
         Log.d(TAG, "buildLocationRects height:"+layoutParams.height);
 
-    }
-
-    @Override
-    public void onMeasure(@NonNull RecyclerView.Recycler recycler, @NonNull RecyclerView.State state, int widthSpec, int heightSpec) {
-        super.onMeasure(recycler, state, widthSpec, heightSpec);
     }
 
     private boolean isViewHasAboveBehavior(View view) {
@@ -252,23 +237,12 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             return;
         }
 
-        int itemCount = getItemCount();
-        int screenFilledHeight = 0;
-        for (int i = itemCount - 1; i >= 0; i--) {
-            Rect rect = stateList.get(i).rect;
-            screenFilledHeight = screenFilledHeight + (rect.bottom - rect.top);
-            if (screenFilledHeight > getHeight()) {
-                int extraSnapHeight = getHeight() - (screenFilledHeight - (rect.bottom - rect.top));
-                maxScroll = maxScroll + extraSnapHeight;
-                break;
-            }
-        }
     }
 
     /**
      * 初始化的时候，layout子View
      */
-    private void layoutItems(boolean isSetHeight) {
+    private void layoutItems() {
         removeAndRecycleUnusedViews(recycler);
 
         int itemCount = getItemCount();
@@ -278,7 +252,8 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             Rect rect = holder.rect;
             StateHolder beforeHolder = i > 0 ? stateList.get(i-1) : null;
             int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
-            if ((isSetHeight && i < 3) || isViewCanVisible(i)) {
+            //还没有完全展开，前3个必须初始化
+            if ((mVisibleHeight <= getHeight() && i < 3) || isViewCanVisible(i)) {
                 View childView = findViewForPosition(i, recycler);
                 visibleView.put(i, childView);
                 computeViewCreate(i, holder, beforeHolder);
@@ -295,7 +270,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             Rect rect = stateList.get(position).rect;
             StateHolder holder = stateList.get(position);
             bindChild(childView);
-            layoutDecorated(childView, rect.left, holder.scrollBottom - rect.height()-holder.scrollOffset,
+            layoutDecoratedWithMargins(childView, rect.left, holder.scrollBottom - rect.height()-holder.scrollOffset,
                     rect.right, holder.scrollBottom-holder.scrollOffset);
         }
         if (!mUseVisibleHeight) {
@@ -372,10 +347,10 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
     public void setVisibleHeight(int visibleHeight) {
         Log.d(TAG, "setVisibleHeight:"+getHeight()+", visibleHeight:"+visibleHeight);
         if (!mUseVisibleHeight) return;
-        int height = visibleHeight;//Math.min(Math.max(visibleHeight, 0), getHeight());
-        if (height > getHeight() || height == mVisibleHeight) return;
+        int height = Math.min(Math.max(visibleHeight, 0), getHeight());
+        if (height == mVisibleHeight) return;
         this.mVisibleHeight = height;
-        layoutItems(true);
+        layoutItems();
 //        requestLayout();
     }
 
@@ -398,33 +373,33 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             int meddleOffset1 = bottomOffset - meddleOffset;
             if (lastLength == 0) {
                 holder.scrollBottom = itemHeight;
-                holder.scrollOffset = scroll;
             }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
                 lastLength +=itemHeight;
                 holder.scrollBottom = lastLength;
-                holder.scrollOffset = scroll;
             }else if (visibleLength - lastLength > bottomOffset) {
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
                 holder.scrollBottom = visibleLength - meddleOffset1 - (int) (meddleOffset*scale);
-                holder.scrollOffset = scroll;
             }else if (visibleLength - lastLength > bottomOffset/2){
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset/2) / (bottomOffset/2);
                 holder.scrollBottom = visibleLength+bottomLastOffset
                         - (int) ((bottomLastOffset+meddleOffset1)*scale);
-                holder.scrollOffset = scroll;
             }else {
                 //计算上个view移动与当前view的比例
                 holder.scrollBottom = visibleLength+bottomLastOffset;
-                holder.scrollOffset = scroll;
+
             }
         }
+        holder.scrollOffset = scroll;
         //阻止最后一项往上滑过头
         if (position == getItemCount()-1) {
             holder.scrollBottom = Math.max(visibleLength, holder.scrollBottom);
         }
-        Log.d(TAG, "computeViewScroll position:"+position+", bottom:"+holder.scrollBottom);
+        Log.d(TAG, "computeViewScroll position:"+position+", visibleLength:"+visibleLength
+                +", bottom:"+holder.scrollBottom);
+        Log.d(TAG, "computeViewScroll position:"+position+", height:"+totalRange
+                +", h:"+(maxScroll+getHeight()));
     }
 
     @Override
@@ -504,7 +479,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         }
         lastDy = dy;
         if (!state.isPreLayout() && getChildCount() > 0) {
-            layoutItems(false);
+            layoutItems();
         }
 
         return travel;
@@ -517,9 +492,9 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         view.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mRecyclerView = view;
         mNeedFixHeight = true;
-        h_elevation = 2;//mRecyclerView.getResources().getDimension(R.dimen.activity_item_elevation);
-        m_elevation = h_elevation/2;
-        l_elevation = 0;
+        stateList = new SparseArray<>();
+        viewHeightMap = new ArrayMap<>();
+        visibleView = new SparseArray<>();
 
         bottomOffset = UIUtils.dip2px(view.getContext(), 50);
         bottomLastOffset = UIUtils.dip2px(view.getContext(), 10);
@@ -530,7 +505,9 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         super.onDetachedFromWindow(view, recycler);
         mRecyclerView = null;
         adapter = null;
-        viewTypeHeightMap = null;
+        stateList = null;
+        viewHeightMap = null;
+        visibleView = null;
     }
 
     @Override
@@ -591,12 +568,9 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
     }
 
     static class StateHolder {
-
         int scrollBottom;
         int scrollOffset;
-
         Rect rect;
-
     }
 
 }

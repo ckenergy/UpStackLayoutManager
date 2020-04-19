@@ -1,4 +1,4 @@
-package com.example.stacklayout.vagelayout;
+package com.example.stacklayout.stacklayout;
 
 import android.view.View;
 
