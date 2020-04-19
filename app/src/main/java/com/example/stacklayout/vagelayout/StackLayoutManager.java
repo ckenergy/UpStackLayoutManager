@@ -3,7 +3,6 @@ package com.example.stacklayout.vagelayout;
 import android.graphics.Rect;
 import android.util.Log;
 import android.util.SparseArray;
-import android.util.SparseBooleanArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -16,16 +15,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.stacklayout.UIUtils;
 import com.example.stacklayout.drawer.AboveDrawerBehavior;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 /**
  * Created by xmuSistone on 2017/9/20.
  */
-public class VegaLayoutManager extends RecyclerView.LayoutManager {
+public class StackLayoutManager extends RecyclerView.LayoutManager {
 
-    private static final String TAG = VegaLayoutManager.class.getSimpleName();
+    private static final String TAG = StackLayoutManager.class.getSimpleName();
 
 
     private int scroll = 0;
@@ -62,7 +58,7 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
 
     float a1, a2, b2;
 
-    public VegaLayoutManager() {
+    public StackLayoutManager() {
         setAutoMeasureEnabled(true);
     }
 
@@ -108,12 +104,8 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
         if (state.isPreLayout()) {
             return;
         }
-
         buildLocationRects();
-
-        // 先回收放到缓存，后面会再次统一layout
-        detachAndScrapAttachedViews(recycler);
-        layoutItemsOnCreate(recycler);
+        layoutItems(true);
     }
 
     boolean needRebuildRect = true;
@@ -151,22 +143,16 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
             rect.top = tempPosition;
             rect.right = getWidth() - getPaddingRight();
             rect.bottom = rect.top + itemHeight;
-//            locationRects.put(itemCount - 1 - i, rect);
-//            attachedItems.put(itemCount - 1 - i, false);
             holder.rect = rect;
 
             if (i == 0) {
-                holder.state = StateHolder.VISIBLE_TOP;
                 mMinScrollHeight = rect.height() + bottomOffset;
                 holder.scrollBottom = lastBottom + rect.height();//初始化bottom
             }else if (i==1){
-                holder.state = StateHolder.VISIBLE_MEDDLE;
                 holder.scrollBottom = lastBottom + bottomOffset/2;//初始化bottom
             }else if(i == 2) {
-                holder.state = StateHolder.VISIBLE_BOTTOM;
                 holder.scrollBottom = lastBottom + bottomOffset/2 + bottomLastOffset;//初始化bottom
             }else {
-                holder.state = StateHolder.VISIBLE_BOTTOM;
                 holder.scrollBottom = lastBottom + bottomLastOffset;//初始化bottom
             }
             lastBottom = holder.scrollBottom;
@@ -233,6 +219,11 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
 
     }
 
+    @Override
+    public void onMeasure(@NonNull RecyclerView.Recycler recycler, @NonNull RecyclerView.State state, int widthSpec, int heightSpec) {
+        super.onMeasure(recycler, state, widthSpec, heightSpec);
+    }
+
     private boolean isViewHasAboveBehavior(View view) {
         if (view.getLayoutParams() instanceof CoordinatorLayout.LayoutParams) {
             CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) view.getLayoutParams();
@@ -249,21 +240,6 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
         }else {
             return findCoordinatorLayout((View) view.getParent());
         }
-    }
-
-    /**
-     * 对外提供接口，找到第一个可视view的index
-     */
-    public int findFirstVisibleItemPosition() {
-//        int count = locationRects.size();
-//        Rect displayRect = getDisplayRect();
-//        for (int i = 0; i < count; i++) {
-//            if (Rect.intersects(displayRect, locationRects.get(i)) &&
-//                    attachedItems.get(i)) {
-//                return i;
-//            }
-//        }
-        return 0;
     }
 
     /**
@@ -292,60 +268,7 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
     /**
      * 初始化的时候，layout子View
      */
-    private void layoutItemsOnCreate(RecyclerView.Recycler recycler) {
-        int itemCount = getItemCount();
-        visibleView.clear();
-        for (int i=0; i < itemCount; i++) {
-            StateHolder holder = stateList.get(i);
-            Rect rect = holder.rect;
-            StateHolder beforeHolder = i > 0 ? stateList.get(i-1) : null;
-            int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
-            if (i < 3 || isViewCanVisible(lastLength, rect.height())) {
-                View childView = recycler.getViewForPosition(i);
-                visibleView.put(i, childView);
-                computeViewCreate(i, holder, beforeHolder);
-            }else if (lastLength < scroll) {
-                holder.scrollBottom = lastLength+rect.height();
-            }else {
-                holder.scrollBottom = lastLength + bottomLastOffset;
-            }
-        }
-        itemCount = visibleView.size();
-        for (int i = itemCount -1; i >= 0; i--) {
-            int position = visibleView.keyAt(i);
-            View childView = visibleView.get(position);
-            Rect rect = stateList.get(position).rect;
-            StateHolder holder = stateList.get(position);
-            addView(childView);
-            measureChildWithMargins(childView, View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-            layoutDecorated(childView, rect.left, holder.scrollBottom - rect.height(), rect.right, holder.scrollBottom);
-        }
-        if (!mUseVisibleHeight) {
-            mVisibleHeight = getHeight();
-        }
-    }
-
-    private boolean isViewCanVisible(int position) {
-        int visibleLength = mVisibleHeight+scroll+bottomLastOffset;
-        StateHolder beforeHolder = position > 0 ? stateList.get(position-1) : null;
-        StateHolder holder = stateList.get(position);
-        int height = holder.rect.height();
-        int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
-        return (lastLength + height > scroll && lastLength + height < visibleLength)
-                || (lastLength > scroll && lastLength < visibleLength);
-    }
-
-    private boolean isViewCanVisible(int lastLength, int height) {
-        int visibleLength = mVisibleHeight+scroll+bottomLastOffset;
-        return (lastLength + height > scroll && lastLength + height < visibleLength)
-                || (lastLength > scroll && lastLength < visibleLength);
-    }
-
-    /**
-     * 初始化的时候，layout子View
-     */
-    private void layoutItemsOnScroll() {
-
+    private void layoutItems(boolean isSetHeight) {
         removeAndRecycleUnusedViews(recycler);
 
         int itemCount = getItemCount();
@@ -355,10 +278,10 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
             Rect rect = holder.rect;
             StateHolder beforeHolder = i > 0 ? stateList.get(i-1) : null;
             int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
-            if (isViewCanVisible(lastLength, rect.height())) {
+            if ((isSetHeight && i < 3) || isViewCanVisible(i)) {
                 View childView = findViewForPosition(i, recycler);
                 visibleView.put(i, childView);
-                computeViewScroll(i, holder, beforeHolder);
+                computeViewCreate(i, holder, beforeHolder);
             }else if (lastLength < scroll) {
                 holder.scrollBottom = lastLength+rect.height();
             }else {
@@ -375,7 +298,19 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
             layoutDecorated(childView, rect.left, holder.scrollBottom - rect.height()-holder.scrollOffset,
                     rect.right, holder.scrollBottom-holder.scrollOffset);
         }
+        if (!mUseVisibleHeight) {
+            mVisibleHeight = getHeight();
+        }
+    }
 
+    private boolean isViewCanVisible(int position) {
+        int visibleLength = mVisibleHeight+scroll+bottomLastOffset;
+        StateHolder beforeHolder = position > 0 ? stateList.get(position-1) : null;
+        StateHolder holder = stateList.get(position);
+        int height = holder.rect.height();
+        int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
+        return (lastLength + height > scroll && lastLength + height < visibleLength)
+                || (lastLength > scroll && lastLength < visibleLength);
     }
 
     private void removeAndRecycleUnusedViews(final RecyclerView.Recycler recycler) {
@@ -440,14 +375,8 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
         int height = visibleHeight;//Math.min(Math.max(visibleHeight, 0), getHeight());
         if (height > getHeight() || height == mVisibleHeight) return;
         this.mVisibleHeight = height;
-        requestLayout();
-    }
-
-    private void layoutItem(int position, View child) {
-        StateHolder holder = stateList.get(position);
-        Rect rect = holder.rect;
-        layoutDecoratedWithMargins(child, rect.left, holder.scrollBottom - rect.height() - holder.scrollOffset,
-                rect.right, holder.scrollBottom - holder.scrollOffset);
+        layoutItems(true);
+//        requestLayout();
     }
 
     private void computeViewCreate(int position, StateHolder holder,StateHolder beforeHolder) {
@@ -465,57 +394,36 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
                 holder.scrollBottom = lastLength + bottomLastOffset;
             }
         }else {
+            int meddleOffset = bottomOffset*2/3;
+            int meddleOffset1 = bottomOffset - meddleOffset;
             if (lastLength == 0) {
                 holder.scrollBottom = itemHeight;
+                holder.scrollOffset = scroll;
             }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
                 lastLength +=itemHeight;
                 holder.scrollBottom = lastLength;
+                holder.scrollOffset = scroll;
             }else if (visibleLength - lastLength > bottomOffset) {
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
-                holder.scrollBottom = visibleLength - (int) (bottomOffset/2*(1+scale));
+                holder.scrollBottom = visibleLength - meddleOffset1 - (int) (meddleOffset*scale);
+                holder.scrollOffset = scroll;
             }else if (visibleLength - lastLength > bottomOffset/2){
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset/2) / (bottomOffset/2);
                 holder.scrollBottom = visibleLength+bottomLastOffset
-                        - (int) ((bottomLastOffset+bottomOffset/2)*scale);
+                        - (int) ((bottomLastOffset+meddleOffset1)*scale);
+                holder.scrollOffset = scroll;
             }else {
                 //计算上个view移动与当前view的比例
                 holder.scrollBottom = visibleLength+bottomLastOffset;
                 holder.scrollOffset = scroll;
             }
         }
-        Log.d(TAG, "computeViewScroll position:"+position+", bottom:"+holder.scrollBottom);
-    }
-
-    private void computeViewScroll(int position, StateHolder holder,StateHolder beforeHolder) {
-        int itemHeight = holder.rect.height();
-        int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
-        int visibleLength = scroll + mVisibleHeight;
-        if (lastLength == 0) {
-            holder.scrollBottom = itemHeight;
-            holder.scrollOffset = scroll;
-        }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
-            lastLength +=itemHeight;
-            holder.scrollBottom = lastLength;
-            holder.scrollOffset = scroll;
-        }else if (visibleLength - lastLength > bottomOffset) {
-            //计算上个view移动与当前view的比例
-            float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
-            holder.scrollBottom = visibleLength - (int) (bottomOffset/2*(1+scale));
-            holder.scrollOffset = scroll;
-        }else if (visibleLength - lastLength > bottomOffset/2){
-            //计算上个view移动与当前view的比例
-            float scale = 1.0f*(visibleLength - lastLength - bottomOffset/2) / (bottomOffset/2);
-            holder.scrollBottom = visibleLength+bottomLastOffset
-                    - (int) ((bottomLastOffset+bottomOffset/2)*scale);
-            holder.scrollOffset = scroll;
-        }else {
-            //计算上个view移动与当前view的比例
-            holder.scrollBottom = visibleLength+bottomLastOffset;
-            holder.scrollOffset = scroll;
+        //阻止最后一项往上滑过头
+        if (position == getItemCount()-1) {
+            holder.scrollBottom = Math.max(visibleLength, holder.scrollBottom);
         }
-        Log.d(TAG, "computeViewScroll scroll:"+scroll+", mVisibleHeight:"+mVisibleHeight);
         Log.d(TAG, "computeViewScroll position:"+position+", bottom:"+holder.scrollBottom);
     }
 
@@ -596,7 +504,7 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
         }
         lastDy = dy;
         if (!state.isPreLayout() && getChildCount() > 0) {
-            layoutItemsOnScroll();
+            layoutItems(false);
         }
 
         return travel;
@@ -683,14 +591,6 @@ public class VegaLayoutManager extends RecyclerView.LayoutManager {
     }
 
     static class StateHolder {
-
-        static int INVISIBLE = 0;
-        static int VISIBLE_BOTTOM = 1;
-        static int VISIBLE_MEDDLE = 2;
-        static int VISIBLE_TOP = 3;
-        static int VISIBLE_STOP = 4;
-
-        int state = INVISIBLE;
 
         int scrollBottom;
         int scrollOffset;

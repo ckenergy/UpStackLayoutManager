@@ -6,28 +6,26 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.stacklayout.drawer.AboveDrawerBehavior
-import com.example.stacklayout.vagelayout.VegaLayoutManager
+import com.example.stacklayout.vagelayout.StackLayoutManager
 import kotlinx.android.synthetic.main.activity_main.*
-import java.security.AccessControlContext
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var mVegaLayoutManager: VegaLayoutManager
+    lateinit var mStackLayoutManager: StackLayoutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        mVegaLayoutManager = VegaLayoutManager()
-        mVegaLayoutManager.isUseVisibleHeight = true
-        recyler_view.layoutManager = mVegaLayoutManager
+        mStackLayoutManager =
+            StackLayoutManager()
+        mStackLayoutManager.isUseVisibleHeight = true
+        recyler_view.layoutManager = mStackLayoutManager
         recyler_view.adapter = Adapter(this)
 
         setBottomDrawerOffset(above_scroll)
@@ -66,7 +64,7 @@ class MainActivity : AppCompatActivity() {
 
                         //设置LayoutManager的高度来展示叠加效果
                         val initHeight: Int = behavior.minHeight - listOffset
-                        mVegaLayoutManager.visibleHeight = initHeight + Math.abs(scrollOffset)
+                        mStackLayoutManager.visibleHeight = initHeight + Math.abs(scrollOffset)
                     }
                 })
             }
@@ -82,8 +80,14 @@ class MainActivity : AppCompatActivity() {
         var list:List<Int> = listOf(R.mipmap.riding1,R.mipmap.riding2,R.mipmap.riding3,R.mipmap.riding4)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Adapter.Holder {
-            val view = LayoutInflater.from(context)
-                .inflate(R.layout.item_image, parent, false)
+            val view: View
+            if (viewType == 1) {
+                view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_image, parent, false)
+            }else {
+                view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_image1, parent, false)
+            }
             return Holder(view)
         }
 
@@ -91,13 +95,21 @@ class MainActivity : AppCompatActivity() {
             return list.size*3
         }
 
+        override fun getItemViewType(position: Int): Int {
+            if (position%2 == 0) {
+                return 1
+            }
+            return 2
+        }
+
         override fun onBindViewHolder(holder: Adapter.Holder, position: Int) {
-            holder.image.setBackgroundResource(list.get(position%list.size))
+            holder.textView.setBackgroundResource(list.get(position%list.size))
+            holder.textView.setText("第$position 项")
 //            ViewCompat.setElevation(holder.image, (5-position).toFloat())
         }
 
         class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            var image:TextView = itemView.findViewById(R.id.item_tv)
+            var textView:TextView = itemView.findViewById(R.id.item_tv)
         }
 
     }
