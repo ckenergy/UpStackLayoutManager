@@ -3,7 +3,7 @@ package com.example.stacklayout
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.example.stacklayout.stacklayout.StackLayoutManager
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_upward.*
 
 class ExpandActivity : AppCompatActivity() {
 

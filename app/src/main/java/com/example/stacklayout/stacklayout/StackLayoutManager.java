@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
+import androidx.annotation.NonNull;
 import androidx.collection.ArrayMap;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.recyclerview.widget.RecyclerView;
@@ -113,6 +114,11 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         layoutItems();
     }
 
+    @Override
+    public void onMeasure(@NonNull RecyclerView.Recycler recycler, @NonNull RecyclerView.State state, int widthSpec, int heightSpec) {
+        super.onMeasure(recycler, state, widthSpec, heightSpec);
+    }
+
     boolean needRebuildRect = true;
 
     private void buildLocationRects() {
@@ -136,7 +142,9 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
                 View itemView = recycler.getViewForPosition(i);
                 addView(itemView);
                 measureChildWithMargins(itemView, View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-                itemHeight = getDecoratedMeasuredHeight(itemView);
+                RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) itemView.getLayoutParams();
+                itemHeight = getDecoratedMeasuredHeight(itemView)+lp.topMargin + lp.bottomMargin;
+                Log.d(TAG, "top:"+lp.topMargin+", bottom:"+lp.bottomMargin);
                 viewHeightMap.put(viewType, itemHeight);
             }
 
@@ -170,9 +178,12 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
                 @Override
                 public void onGlobalLayout() {
                     setRecyclerViewHeight(mRecyclerView, totalRange);
+                    mVisibleHeight = getHeight();
                     mRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 }
             });
+        }else {
+            mVisibleHeight = getHeight();
         }
 
         if (itemCount == 0) {
@@ -200,7 +211,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
                 }
 
                 mFixHeight = Math.min(maxHeight, totalRange + getPaddingBottom()+getPaddingTop());
-
                 layoutParams.height = mFixHeight;//mFixHeight + getPaddingBottom();
                 recyclerView.setLayoutParams(layoutParams);
             }
@@ -272,9 +282,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             bindChild(childView);
             layoutDecoratedWithMargins(childView, rect.left, holder.scrollBottom - rect.height()-holder.scrollOffset,
                     rect.right, holder.scrollBottom-holder.scrollOffset);
-        }
-        if (!mUseVisibleHeight) {
-            mVisibleHeight = getHeight();
         }
     }
 
@@ -358,6 +365,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         int itemHeight = holder.rect.height();
         int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
         int visibleLength = scroll + mVisibleHeight;
+        Log.d(TAG, "computeViewCreate mVisibleHeight:"+mVisibleHeight+", mMinScrollHeight:"+mMinScrollHeight);
         if (mVisibleHeight < mMinScrollHeight) {
             if (position == 0) {
                 holder.scrollBottom = itemHeight;
@@ -388,7 +396,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             }else {
                 //计算上个view移动与当前view的比例
                 holder.scrollBottom = visibleLength+bottomLastOffset;
-
             }
         }
         holder.scrollOffset = scroll;

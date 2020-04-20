@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.example.stacklayout.drawer.AboveDrawerBehavior
 import com.example.stacklayout.stacklayout.StackLayoutManager
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_upward.*
 
 class UpwardActivity : AppCompatActivity() {
 
@@ -15,7 +15,7 @@ class UpwardActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_upward)
 
         val size = intent.getIntExtra(PARAM, 0)
 
