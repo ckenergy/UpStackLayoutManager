@@ -17,13 +17,13 @@ public class StartSnapHelper extends LinearSnapHelper {
                                               @NonNull View targetView) {
         int[] out = new int[2];
         out[0] = 0;
-        out[1] = ((StackLayoutManager) layoutManager).getSnapHeight();
+        out[1] = ((UpStackLayoutManager) layoutManager).getSnapHeight();
         return out;
     }
 
     @Override
     public View findSnapView(RecyclerView.LayoutManager layoutManager) {
-        StackLayoutManager custLayoutManager = (StackLayoutManager) layoutManager;
+        UpStackLayoutManager custLayoutManager = (UpStackLayoutManager) layoutManager;
         return custLayoutManager.findSnapView();
     }
 }

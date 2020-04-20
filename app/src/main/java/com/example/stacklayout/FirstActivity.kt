@@ -13,7 +13,7 @@ class FirstActivity : AppCompatActivity() {
         bt_1.setOnClickListener { startActivity(Intent(this, ExpandActivity::class.java)) }
         bt_2.setOnClickListener {
             startActivity(Intent(this, UpwardActivity::class.java)
-                .putExtra(UpwardActivity.PARAM, 5))
+                .putExtra(UpwardActivity.PARAM, 3))
         }
         bt_3.setOnClickListener {
             startActivity(Intent(this, UpwardActivity::class.java)

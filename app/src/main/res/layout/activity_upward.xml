@@ -1,76 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout android:id="@+id/coordinator"
+<FrameLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_alignParentBottom="true"
+    android:gravity="center"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <FrameLayout
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:textSize="40dp"
+        android:layout_gravity="center"
+        android:text="配合CoordinatorLayout和Behavior使用"/>
+
+    <View
+        android:id="@+id/overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="15dp"
-            android:textSize="40dp"
-            android:layout_gravity="center"
-            android:text="配合CoordinatorLayout和Behavior使用"/>
-
-    </FrameLayout>
+        android:background="#73000000"
+        android:visibility="invisible"/>
 
     <LinearLayout
-        android:id="@+id/bottom_sheet"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        app:behavior_hideable="false"
-        app:behavior_peekHeight="120dp"
-        app:layout_behavior="@string/bottom_sheet_behavior">
+        >
 
-        <RelativeLayout
-            android:id="@+id/unlock_layout"
+        <Button
+            android:id="@+id/close"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dp"
+            android:layout_marginTop="-50dp"
+            android:text="关闭"/>
+
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
+            android:id="@+id/coordinator"
             android:layout_width="match_parent"
-            android:layout_height="66dp"
-            android:layout_marginBottom="12dp"
-            android:layout_marginLeft="15dp"
-            android:layout_marginRight="15dp"
-            android:background="#0aa">
+            android:layout_height="match_parent"
+            >
 
-            <TextView
-                android:id="@+id/sweep_lock"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/bottom_sheet"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:layout_gravity="center"
-                android:drawablePadding="10dp"
-                android:gravity="center"
-                android:text="按钮"
-                android:textSize="18dp"
-                android:textStyle="bold"/>
+                android:orientation="vertical"
+                app:behavior_hideable="false"
+                app:behavior_peekHeight="130dp"
+                app:layout_behavior="@string/bottom_sheet_behavior">
 
-        </RelativeLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="66dp"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginLeft="15dp"
+                    android:layout_marginRight="15dp"
+                    android:background="#0aa"
+                    android:gravity="center"
+                    android:text="按钮"
+                    android:textSize="18dp"
+                    android:textStyle="bold"/>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyler_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="8dp"
+                    android:layout_marginRight="8dp"/>
+
+            </LinearLayout>
+
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/above_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginLeft="15dp"
-        android:layout_marginRight="15dp"
-        android:layout_marginBottom="15dp"
-        android:gravity="center"
-        android:text="依赖behavior view"
-        android:background="#fff"
-        android:visibility="gone"
-        app:layout_behavior=".drawer.AboveDrawerBehavior"/>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

@@ -37,6 +37,12 @@ public class BottomSheetHelper {
         return bottomSheetBehavior != null && bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_COLLAPSED;
     }
 
+    public static boolean isBottomExpand(View bottomSheet) {
+        BottomSheetBehavior bottomSheetBehavior = getBottomBehavior(bottomSheet);
+//        Log.d(TAG, "isBottomClose:"+bottomSheetBehavior.getState());
+        return bottomSheetBehavior != null && bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED;
+    }
+
     public static void closeBottomDrawer(View bottomSheet) {
         BottomSheetBehavior bottomSheetBehavior = getBottomBehavior(bottomSheet);
         if (bottomSheetBehavior != null) bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);

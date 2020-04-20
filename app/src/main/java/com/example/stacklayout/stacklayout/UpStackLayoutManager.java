@@ -19,9 +19,9 @@ import com.example.stacklayout.drawer.AboveDrawerBehavior;
 /**
  * Created by xmuSistone on 2017/9/20.
  */
-public class StackLayoutManager extends RecyclerView.LayoutManager {
+public class UpStackLayoutManager extends RecyclerView.LayoutManager {
 
-    private static final String TAG = StackLayoutManager.class.getSimpleName();
+    private static final String TAG = UpStackLayoutManager.class.getSimpleName();
 
 
     private int scroll = 0;
@@ -54,7 +54,7 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
 
     private RecyclerView mRecyclerView;
 
-    public StackLayoutManager() {
+    public UpStackLayoutManager() {
     }
 
     public boolean isUseVisibleHeight() {
@@ -138,7 +138,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
             if (viewHeightMap.containsKey(viewType)) {
                 itemHeight = viewHeightMap.get(viewType);
             } else {
-                // TODO: 2020/4/17 0017  获取view的margin
                 View itemView = recycler.getViewForPosition(i);
                 addView(itemView);
                 measureChildWithMargins(itemView, View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
@@ -178,7 +177,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
                 @Override
                 public void onGlobalLayout() {
                     setRecyclerViewHeight(mRecyclerView, totalRange);
-                    mVisibleHeight = getHeight();
                     mRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 }
             });
@@ -209,7 +207,6 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
                 if (maxHeight <= 0) {
                     maxHeight = mRecyclerView.getResources().getDisplayMetrics().heightPixels - offset;
                 }
-
                 mFixHeight = Math.min(maxHeight, totalRange + getPaddingBottom()+getPaddingTop());
                 layoutParams.height = mFixHeight;//mFixHeight + getPaddingBottom();
                 recyclerView.setLayoutParams(layoutParams);
@@ -366,24 +363,23 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
         int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
         int visibleLength = scroll + mVisibleHeight;
         Log.d(TAG, "computeViewCreate mVisibleHeight:"+mVisibleHeight+", mMinScrollHeight:"+mMinScrollHeight);
-        if (mVisibleHeight < mMinScrollHeight) {
+        int meddleOffset = bottomOffset*2/3;
+        int meddleOffset1 = bottomOffset - meddleOffset;
+        if (scroll == 0 && mVisibleHeight < mMinScrollHeight) {
             if (position == 0) {
                 holder.scrollBottom = itemHeight;
             }else if (position == 1){
-                holder.scrollBottom = lastLength + bottomOffset/2;
+                holder.scrollBottom = lastLength + meddleOffset;
             }else if (position == 2){
-                holder.scrollBottom = lastLength + bottomLastOffset;
+                holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
             }else {
                 holder.scrollBottom = lastLength + bottomLastOffset;
             }
         }else {
-            int meddleOffset = bottomOffset*2/3;
-            int meddleOffset1 = bottomOffset - meddleOffset;
             if (lastLength == 0) {
                 holder.scrollBottom = itemHeight;
             }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
-                lastLength +=itemHeight;
-                holder.scrollBottom = lastLength;
+                holder.scrollBottom = lastLength + itemHeight;
             }else if (visibleLength - lastLength > bottomOffset) {
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
@@ -411,7 +407,8 @@ public class StackLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public boolean canScrollVertically() {
-        return true;
+        //避免CoordinatorLayout没上滑完，就可以向下滑动
+        return mVisibleHeight >= getHeight();
     }
 
     /**

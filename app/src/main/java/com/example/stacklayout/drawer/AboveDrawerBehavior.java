@@ -19,9 +19,7 @@ public class AboveDrawerBehavior extends CoordinatorLayout.Behavior<View> {//这
 
     boolean hasInit = false;
     int mTop = 0;
-    int mLatTop = 0;
     int mInitTop = -1;
-    int mOffset = 0;
     int mCountOffset = 0;
 
     int mMinHeight = 0;
@@ -60,8 +58,7 @@ public class AboveDrawerBehavior extends CoordinatorLayout.Behavior<View> {//这
     public boolean layoutDependsOn(CoordinatorLayout parent, View child, View dependency) {
         if(dependency.getLayoutParams() instanceof CoordinatorLayout.LayoutParams) {
             CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) dependency.getLayoutParams();
-            if (layoutParams.getBehavior() instanceof DrawerBehavior
-                    || layoutParams.getBehavior() instanceof BottomSheetBehavior
+            if (layoutParams.getBehavior() instanceof BottomSheetBehavior
                     /*|| layoutParams.getBehavior() instanceof MyBottomSheetBehavior*/) {
                 mDependency = dependency;
                 int minheight = 0;
@@ -84,7 +81,6 @@ public class AboveDrawerBehavior extends CoordinatorLayout.Behavior<View> {//这
                 setMinHeight(minheight);
                 Log.d(TAG, "layoutDependsOn parentHeight:"+parent.getHeight());
                 mInitTop = parent.getHeight() - getMinHeight();//mDependency.getTop();
-                mLatTop = mInitTop;
                 return true;
             }
         }
@@ -105,8 +101,6 @@ public class AboveDrawerBehavior extends CoordinatorLayout.Behavior<View> {//这
         mCountOffset = mDependency.getMeasuredHeight() - getMinHeight();
 
         mTop = dependency.getTop();
-        mOffset = mTop - mLatTop;
-        mLatTop = mTop;
         int mScroll = mTop - mInitTop;
 
         if (mOnOffsetChangedListener != null) {

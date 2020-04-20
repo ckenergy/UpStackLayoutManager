@@ -3,15 +3,18 @@ package com.example.stacklayout
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.View.OnTouchListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import com.example.stacklayout.drawer.AboveDrawerBehavior
-import com.example.stacklayout.stacklayout.StackLayoutManager
+import androidx.core.view.ViewCompat
+import com.example.stacklayout.drawer.BottomSheetHelper
+import com.example.stacklayout.stacklayout.UpStackLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import kotlinx.android.synthetic.main.activity_upward.*
 
 class UpwardActivity : AppCompatActivity() {
 
-    lateinit var mStackLayoutManager: StackLayoutManager
+    lateinit var mUpStackLayoutManager: UpStackLayoutManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,50 +22,70 @@ class UpwardActivity : AppCompatActivity() {
 
         val size = intent.getIntExtra(PARAM, 0)
 
-        mStackLayoutManager = StackLayoutManager()
-        mStackLayoutManager.isUseVisibleHeight = true
-        mStackLayoutManager.diffOffset = UIUtils.dip2px(this, 78)
-        recyler_view.layoutManager = mStackLayoutManager
+        mUpStackLayoutManager =
+            UpStackLayoutManager()
+        mUpStackLayoutManager.isUseVisibleHeight = true
+        mUpStackLayoutManager.diffOffset = UIUtils.dip2px(this, 90)
+        recyler_view.layoutManager = mUpStackLayoutManager
         recyler_view.adapter = StackAdapter(this, size)
 
-        setBottomDrawerOffset(above_scroll)
+        setBottomDrawerOffset(bottom_sheet)
+
+        close.setOnClickListener { BottomSheetHelper.closeBottomDrawer(bottom_sheet) }
+        close.translationY = -UIUtils.dip2px(this@UpwardActivity, 70).toFloat()
+    }
+
+    /**
+     * 上滑显示蒙尘的时候不能移动
+     */
+    private fun setCantMove() {
+        overlay.setOnTouchListener(OnTouchListener { v, event -> true })
+    }
+
+    private fun hideOnScroll(view: View, height: Int) {
+        ViewCompat.animate(view).translationY(-height.toFloat()).setDuration(300).start()
+    }
+
+    private fun showOnScroll(view: View) {
+        view.visibility = View.VISIBLE
+        ViewCompat.animate(view).translationY(0f).setDuration(300).start()
     }
 
     /**
      * 滑动监听
      */
-    protected fun setBottomDrawerOffset(mAboveScroll: View) {
-        if (mAboveScroll.layoutParams is CoordinatorLayout.LayoutParams) {
+    protected fun setBottomDrawerOffset(aboveScroll: View) {
+        if (aboveScroll.layoutParams is CoordinatorLayout.LayoutParams) {
             val layoutParams: CoordinatorLayout.LayoutParams =
-                mAboveScroll.layoutParams as CoordinatorLayout.LayoutParams
-            if (layoutParams.getBehavior() is AboveDrawerBehavior) {
-                val behavior: AboveDrawerBehavior =
-                    layoutParams.getBehavior() as AboveDrawerBehavior
-                behavior.setOnOffsetChangedListener(object :
-                    AboveDrawerBehavior.OnOffsetChangedListener {
+                aboveScroll.layoutParams as CoordinatorLayout.LayoutParams
+            if (layoutParams.getBehavior() is BottomSheetBehavior) {
+                val behavior = layoutParams.getBehavior() as BottomSheetBehavior
+                //初始的高度
+                val initHeight = behavior.peekHeight - mUpStackLayoutManager.diffOffset
+                mUpStackLayoutManager.visibleHeight = initHeight
+                behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
 
-                    var listOffset = UIUtils.dip2px(this@UpwardActivity, 50)
+                    override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                        if (!BottomSheetHelper.isBottomExpand(bottomSheet) && slideOffset > 0) {
+                            val scrollLength = recyler_view.height - initHeight
+                            val currentLength = (slideOffset * scrollLength).toInt()
+                            mUpStackLayoutManager.visibleHeight = initHeight + currentLength
+                            Log.d(TAG, "onSlide slideOffset:"+slideOffset)
+                            if(slideOffset > 0.5) {
+                                showOnScroll(close)
+                            }else{
+                                hideOnScroll(close, close.height + UIUtils.dip2px(this@UpwardActivity, 30))
+                            }
 
-                    override fun onOffsetChange(
-                        countOffset: Int,
-                        scrollOffset: Int,
-                        scale: Float
-                    ) {
-                        Log.d(
-                            TAG,
-                            "onOffsetChange count:$countOffset,scroll:$scrollOffset,scale:$scale"
-                        )
-                        Log.d(
-                            TAG,
-                            "onOffsetChange isBottom:" + behavior.isClose()
-                        )
-                        //                        Log.d(TAG, "onOffsetChange mRecyclerView:" + mRecyclerView.getHeight());
-                        //滑动事件传递
-
-                        //设置LayoutManager的高度来展示叠加效果
-                        val initHeight: Int = behavior.minHeight - listOffset
-                        mStackLayoutManager.visibleHeight = initHeight + Math.abs(scrollOffset)
+                            //上滑的蒙尘
+                            overlay.setVisibility(if (slideOffset == 0f) View.INVISIBLE else View.VISIBLE)
+                            overlay.setAlpha(slideOffset)
+                        }
                     }
+
+                    override fun onStateChanged(bottomSheet: View, newState: Int) {
+                    }
+
                 })
             }
         }
