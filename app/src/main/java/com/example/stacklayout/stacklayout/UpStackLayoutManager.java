@@ -260,7 +260,8 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
             StateHolder beforeHolder = i > 0 ? stateList.get(i-1) : null;
             int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
             //还没有完全展开，前3个必须初始化
-            if ((mVisibleHeight <= getHeight() && i < 3) || isViewCanVisible(i)) {
+            if ((mVisibleHeight <= getHeight() && scroll == 0 && i < 3) || isViewCanVisible(i)) {
+                Log.d(TAG, "layoutItems i:"+i);
                 View childView = findViewForPosition(i, recycler);
                 visibleView.put(i, childView);
                 computeViewCreate(i, holder, beforeHolder);
@@ -288,8 +289,12 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
         StateHolder holder = stateList.get(position);
         int height = holder.rect.height();
         int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
+        int first = findFirstVisibleItemPosition();
+        if (mVisibleHeight <= mMinScrollHeight && position >= first && position <= first+3) {
+            return true;
+        }
         return (lastLength + height > scroll && lastLength + height < visibleLength)
-                || (lastLength > scroll && lastLength < visibleLength);
+                || (lastLength > scroll && lastLength < visibleLength) || (lastLength < scroll && lastLength + height > scroll);
     }
 
     private void removeAndRecycleUnusedViews(final RecyclerView.Recycler recycler) {
@@ -304,7 +309,7 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
                 continue;
             }
             final RecyclerView.LayoutParams recyclerViewLp = (RecyclerView.LayoutParams) lp;
-            final int adapterPosition = recyclerViewLp.getViewAdapterPosition();
+            final int adapterPosition = getPosition(child);
             if (recyclerViewLp.isItemRemoved() || !isViewCanVisible(adapterPosition)) {
                 removeAndRecycleView(child, recycler);
             }
@@ -330,7 +335,7 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
                 continue;
             }
             final RecyclerView.LayoutParams recyclerLp = (RecyclerView.LayoutParams) lp;
-            final int adapterPosition = recyclerLp.getViewAdapterPosition();
+            final int adapterPosition = getPosition(child);
             if (adapterPosition == position) {
                 if (recyclerLp.isItemChanged()) {
                     recycler.bindViewToPosition(child, position);
@@ -358,24 +363,39 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
 //        requestLayout();
     }
 
+    public int findFirstVisibleItemPosition() {
+        final View child = getChildAt(getChildCount()-1);
+        return child == null ? RecyclerView.NO_POSITION : getPosition(child);
+    }
+
     private void computeViewCreate(int position, StateHolder holder,StateHolder beforeHolder) {
         int itemHeight = holder.rect.height();
         int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
         int visibleLength = scroll + mVisibleHeight;
-        Log.d(TAG, "computeViewCreate mVisibleHeight:"+mVisibleHeight+", mMinScrollHeight:"+mMinScrollHeight);
         int meddleOffset = bottomOffset*2/3;
         int meddleOffset1 = bottomOffset - meddleOffset;
-        if (scroll == 0 && mVisibleHeight < mMinScrollHeight) {
-            if (position == 0) {
-                holder.scrollBottom = itemHeight;
-            }else if (position == 1){
+        int offsetPosition = findFirstVisibleItemPosition();
+        Log.d(TAG, "computeViewCreate offsetPosition:"+offsetPosition);
+        if (mVisibleHeight < mMinScrollHeight) {
+            if (scroll == 0) {
+                offsetPosition = 0;
+            }
+            if (position == offsetPosition) {
+                holder.scrollBottom = lastLength+itemHeight;
+            }else if (position == 1+offsetPosition){
                 holder.scrollBottom = lastLength + meddleOffset;
-            }else if (position == 2){
+            }else if (position == 2+offsetPosition){
                 holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
             }else {
                 holder.scrollBottom = lastLength + bottomLastOffset;
             }
-        }else {
+        }/*else if(mVisibleHeight < getHeight() && offsetPosition == position){
+            if (lastLength + itemHeight > scroll + (getHeight() - mVisibleHeight) && lastLength < scroll) {
+                holder.scrollBottom  = lastLength + itemHeight - (getHeight() - mVisibleHeight);
+            }else {
+                holder.scrollBottom  = scroll;
+            }
+        }*/else {
             if (lastLength == 0) {
                 holder.scrollBottom = itemHeight;
             }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
@@ -407,8 +427,9 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public boolean canScrollVertically() {
-        //避免CoordinatorLayout没上滑完，就可以向下滑动
-        return mVisibleHeight >= getHeight();
+        // TODO: 2020/4/20 0020 避免CoordinatorLayout没上滑完，就可以向下滑动
+//        return mVisibleHeight >= getHeight();
+        return true;
     }
 
     /**
