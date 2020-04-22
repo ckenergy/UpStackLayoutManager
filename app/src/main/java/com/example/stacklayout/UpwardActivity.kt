@@ -70,7 +70,7 @@ class UpwardActivity : AppCompatActivity() {
                             val scrollLength = recyler_view.height - initHeight
                             val currentLength = (slideOffset * scrollLength).toInt()
                             mUpStackLayoutManager.visibleHeight = initHeight + currentLength
-                            Log.d(TAG, "onSlide slideOffset:"+slideOffset)
+                            Log.d(TAG, "onSlide slideOffset:"+slideOffset+", visibleHeight:"+mUpStackLayoutManager.visibleHeight)
                             if(slideOffset > 0.5) {
                                 showOnScroll(close)
                             }else{

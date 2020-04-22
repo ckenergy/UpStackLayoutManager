@@ -2,4 +2,4 @@
 
 ## View GIF ##
 
-<img src="./img/1.gif" width = "180" height = "300" />
+<img src="./img/1.gif" width = "180" height = "340" />

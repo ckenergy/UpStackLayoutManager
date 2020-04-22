@@ -114,11 +114,6 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
         layoutItems();
     }
 
-    @Override
-    public void onMeasure(@NonNull RecyclerView.Recycler recycler, @NonNull RecyclerView.State state, int widthSpec, int heightSpec) {
-        super.onMeasure(recycler, state, widthSpec, heightSpec);
-    }
-
     boolean needRebuildRect = true;
 
     private void buildLocationRects() {
@@ -129,7 +124,6 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
 
         int tempPosition = getPaddingTop();
         int itemCount = getItemCount();
-        int lastBottom = 0;
         for (int i = 0; i < itemCount; i++) {
 //        for (int i = itemCount -1; i >= 0; i--) {
             // 1. 先计算出itemWidth和itemHeight
@@ -158,15 +152,7 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
 
             if (i == 0) {
                 mMinScrollHeight = rect.height() + bottomOffset;
-                holder.scrollBottom = lastBottom + rect.height();//初始化bottom
-            }else if (i==1){
-                holder.scrollBottom = lastBottom + bottomOffset/2;//初始化bottom
-            }else if(i == 2) {
-                holder.scrollBottom = lastBottom + bottomOffset/2 + bottomLastOffset;//初始化bottom
-            }else {
-                holder.scrollBottom = lastBottom + bottomLastOffset;//初始化bottom
             }
-            lastBottom = holder.scrollBottom;
             stateList.put(i, holder);
             tempPosition = tempPosition + rect.height();
         }
@@ -374,14 +360,15 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
         int visibleLength = scroll + mVisibleHeight;
         int meddleOffset = bottomOffset*2/3;
         int meddleOffset1 = bottomOffset - meddleOffset;
-        int offsetPosition = findFirstVisibleItemPosition();
-        Log.d(TAG, "computeViewCreate offsetPosition:"+offsetPosition);
+        int offsetPosition = findFirstVisibleItemPosition();//visibleView.keyAt(0);
+        Log.d(TAG, "computeViewCreate offsetPosition:"+offsetPosition+", mVisibleHeight:"+mVisibleHeight);
         if (mVisibleHeight < mMinScrollHeight) {
             if (scroll == 0) {
                 offsetPosition = 0;
             }
             if (position == offsetPosition) {
                 holder.scrollBottom = lastLength+itemHeight;
+                mMinScrollHeight = itemHeight + bottomOffset;
             }else if (position == 1+offsetPosition){
                 holder.scrollBottom = lastLength + meddleOffset;
             }else if (position == 2+offsetPosition){
@@ -389,24 +376,19 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
             }else {
                 holder.scrollBottom = lastLength + bottomLastOffset;
             }
-        }/*else if(mVisibleHeight < getHeight() && offsetPosition == position){
-            if (lastLength + itemHeight > scroll + (getHeight() - mVisibleHeight) && lastLength < scroll) {
-                holder.scrollBottom  = lastLength + itemHeight - (getHeight() - mVisibleHeight);
-            }else {
-                holder.scrollBottom  = scroll;
-            }
-        }*/else {
+        }else {
             if (lastLength == 0) {
                 holder.scrollBottom = itemHeight;
-            }else if ((visibleLength - lastLength > bottomOffset + itemHeight)){
+            }else if ((visibleLength - lastLength > itemHeight + bottomOffset)){
                 holder.scrollBottom = lastLength + itemHeight;
             }else if (visibleLength - lastLength > bottomOffset) {
+                mMinScrollHeight = itemHeight + bottomOffset;
                 //计算上个view移动与当前view的比例
                 float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
                 holder.scrollBottom = visibleLength - meddleOffset1 - (int) (meddleOffset*scale);
-            }else if (visibleLength - lastLength > bottomOffset/2){
+            }else if (visibleLength - lastLength > meddleOffset1){
                 //计算上个view移动与当前view的比例
-                float scale = 1.0f*(visibleLength - lastLength - bottomOffset/2) / (bottomOffset/2);
+                float scale = 1.0f*(visibleLength - lastLength - meddleOffset1) / (meddleOffset);
                 holder.scrollBottom = visibleLength+bottomLastOffset
                         - (int) ((bottomLastOffset+meddleOffset1)*scale);
             }else {
@@ -414,6 +396,29 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
                 holder.scrollBottom = visibleLength+bottomLastOffset;
             }
         }
+
+        //特殊处理,当上滑到完全展开，最上面一个view没有对齐的时候，需要下滑对齐，然后下面的view才开始叠加
+//        if(totalRange == getHeight() + scroll && mVisibleHeight < getHeight() && scroll > 0){
+//            if (offsetPosition == position) {
+//                if (lastLength + itemHeight > scroll + (getHeight() - mVisibleHeight) && lastLength < scroll) {
+//                    holder.scrollBottom  = lastLength + itemHeight - (getHeight() - mVisibleHeight);
+//                }else {
+//                    holder.scrollBottom  = scroll;
+//                }
+//            }else if(mVisibleHeight < minScrollHeight) {
+//                if (position == 1+offsetPosition) {
+//                    holder.scrollBottom = lastLength+itemHeight;
+//                }else if (position == 2+offsetPosition){
+//                    holder.scrollBottom = lastLength + meddleOffset;
+//                }else if (position == 3+offsetPosition){
+//                    holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
+//                }else {
+//                    holder.scrollBottom = lastLength + bottomLastOffset;
+//                }
+//            }
+//
+//        }
+
         holder.scrollOffset = scroll;
         //阻止最后一项往上滑过头
         if (position == getItemCount()-1) {
