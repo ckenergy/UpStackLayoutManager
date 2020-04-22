@@ -276,8 +276,12 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
         int height = holder.rect.height();
         int lastLength = beforeHolder != null ? beforeHolder.scrollBottom : 0;
         int first = findFirstVisibleItemPosition();
-        if (mVisibleHeight <= mMinScrollHeight && position >= first && position <= first+3) {
-            return true;
+        if (mVisibleHeight <= mMinScrollHeight) {
+            if (scroll + getHeight() == totalRange && position >= first && position <= first+4) {
+                return true;
+            }else if (position >= first && position <= first+3){
+                return true;
+            }
         }
         return (lastLength + height > scroll && lastLength + height < visibleLength)
                 || (lastLength > scroll && lastLength < visibleLength) || (lastLength < scroll && lastLength + height > scroll);
@@ -360,64 +364,70 @@ public class UpStackLayoutManager extends RecyclerView.LayoutManager {
         int visibleLength = scroll + mVisibleHeight;
         int meddleOffset = bottomOffset*2/3;
         int meddleOffset1 = bottomOffset - meddleOffset;
-        int offsetPosition = findFirstVisibleItemPosition();//visibleView.keyAt(0);
-        Log.d(TAG, "computeViewCreate offsetPosition:"+offsetPosition+", mVisibleHeight:"+mVisibleHeight);
-        if (mVisibleHeight < mMinScrollHeight) {
-            if (scroll == 0) {
-                offsetPosition = 0;
+        int offsetPosition = visibleView.keyAt(0);
+        boolean handle = false;
+
+        //特殊处理,当上滑到最底端完全展开，最上面一个view没有对齐的时候，需要下滑对齐，然后下面的view才开始叠加
+        if(totalRange == getHeight() + scroll && mVisibleHeight < getHeight() && scroll > 0){
+            if (offsetPosition == position) {
+                if (lastLength + itemHeight > scroll + (getHeight() - mVisibleHeight) && lastLength < scroll) {
+                    holder.scrollBottom  = lastLength + itemHeight - (getHeight() - mVisibleHeight);
+                }else {
+                    holder.scrollBottom  = scroll;
+                }
+                handle = true;
+            }else if(mVisibleHeight < mMinScrollHeight) {
+                if (position == 1+offsetPosition) {
+                    holder.scrollBottom = lastLength+itemHeight;
+                    mMinScrollHeight = itemHeight + bottomOffset;
+                }else if (position == 2+offsetPosition){
+                    holder.scrollBottom = lastLength + meddleOffset;
+                }else if (position == 3+offsetPosition){
+                    holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
+                }else {
+                    holder.scrollBottom = lastLength + bottomLastOffset;
+                }
+                handle = true;
             }
-            if (position == offsetPosition) {
-                holder.scrollBottom = lastLength+itemHeight;
-                mMinScrollHeight = itemHeight + bottomOffset;
-            }else if (position == 1+offsetPosition){
-                holder.scrollBottom = lastLength + meddleOffset;
-            }else if (position == 2+offsetPosition){
-                holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
-            }else {
-                holder.scrollBottom = lastLength + bottomLastOffset;
-            }
-        }else {
-            if (lastLength == 0) {
-                holder.scrollBottom = itemHeight;
-            }else if ((visibleLength - lastLength > itemHeight + bottomOffset)){
-                holder.scrollBottom = lastLength + itemHeight;
-            }else if (visibleLength - lastLength > bottomOffset) {
-                mMinScrollHeight = itemHeight + bottomOffset;
-                //计算上个view移动与当前view的比例
-                float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
-                holder.scrollBottom = visibleLength - meddleOffset1 - (int) (meddleOffset*scale);
-            }else if (visibleLength - lastLength > meddleOffset1){
-                //计算上个view移动与当前view的比例
-                float scale = 1.0f*(visibleLength - lastLength - meddleOffset1) / (meddleOffset);
-                holder.scrollBottom = visibleLength+bottomLastOffset
-                        - (int) ((bottomLastOffset+meddleOffset1)*scale);
-            }else {
-                //计算上个view移动与当前view的比例
-                holder.scrollBottom = visibleLength+bottomLastOffset;
-            }
+
         }
 
-        //特殊处理,当上滑到完全展开，最上面一个view没有对齐的时候，需要下滑对齐，然后下面的view才开始叠加
-//        if(totalRange == getHeight() + scroll && mVisibleHeight < getHeight() && scroll > 0){
-//            if (offsetPosition == position) {
-//                if (lastLength + itemHeight > scroll + (getHeight() - mVisibleHeight) && lastLength < scroll) {
-//                    holder.scrollBottom  = lastLength + itemHeight - (getHeight() - mVisibleHeight);
-//                }else {
-//                    holder.scrollBottom  = scroll;
-//                }
-//            }else if(mVisibleHeight < minScrollHeight) {
-//                if (position == 1+offsetPosition) {
-//                    holder.scrollBottom = lastLength+itemHeight;
-//                }else if (position == 2+offsetPosition){
-//                    holder.scrollBottom = lastLength + meddleOffset;
-//                }else if (position == 3+offsetPosition){
-//                    holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
-//                }else {
-//                    holder.scrollBottom = lastLength + bottomLastOffset;
-//                }
-//            }
-//
-//        }
+        if (!handle) {
+            if (mVisibleHeight < mMinScrollHeight) {
+                if (scroll == 0) {
+                    offsetPosition = 0;
+                }
+                if (position == offsetPosition) {
+                    holder.scrollBottom = lastLength+itemHeight;
+                    mMinScrollHeight = itemHeight + bottomOffset;
+                }else if (position == 1+offsetPosition){
+                    holder.scrollBottom = lastLength + meddleOffset;
+                }else if (position == 2+offsetPosition){
+                    holder.scrollBottom = lastLength + meddleOffset1 + bottomLastOffset;
+                }else {
+                    holder.scrollBottom = lastLength + bottomLastOffset;
+                }
+            }else {
+                if (lastLength == 0) {
+                    holder.scrollBottom = itemHeight;
+                }else if ((visibleLength - lastLength > itemHeight + bottomOffset)){
+                    holder.scrollBottom = lastLength + itemHeight;
+                }else if (visibleLength - lastLength > bottomOffset) {
+                    mMinScrollHeight = itemHeight + bottomOffset;
+                    //计算上个view移动与当前view的比例
+                    float scale = 1.0f*(visibleLength - lastLength - bottomOffset) / itemHeight;
+                    holder.scrollBottom = visibleLength - meddleOffset1 - (int) (meddleOffset*scale);
+                }else if (visibleLength - lastLength > meddleOffset1){
+                    //计算上个view移动与当前view的比例
+                    float scale = 1.0f*(visibleLength - lastLength - meddleOffset1) / (meddleOffset);
+                    holder.scrollBottom = visibleLength+bottomLastOffset
+                            - (int) ((bottomLastOffset+meddleOffset1)*scale);
+                }else {
+                    //计算上个view移动与当前view的比例
+                    holder.scrollBottom = visibleLength+bottomLastOffset;
+                }
+            }
+        }
 
         holder.scrollOffset = scroll;
         //阻止最后一项往上滑过头
